@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Config center node.
@@ -35,8 +36,6 @@ import java.util.regex.Pattern;
 public final class ConfigCenterNode {
     
     private static final String METADATA_NODE = "metadata";
-    
-    private static final String SCHEMAS_NODE = "schemas";
     
     private static final String DATA_SOURCE_NODE = "datasource";
     
@@ -158,7 +157,7 @@ public final class ConfigCenterNode {
      * @return config paths list.
      */
     public Collection<String> getAllSchemaConfigPaths(final Collection<String> schemaNames) {
-        Collection<String> result = new ArrayList<>(Collections.singleton(getSchemasNodePath()));
+        Collection<String> result = new ArrayList<>(Collections.singleton(getMetadataNodePath()));
         for (String schemaName : schemaNames) {
             result.add(getRulePath(schemaName));
             result.add(getDataSourcePath(schemaName));
@@ -178,11 +177,32 @@ public final class ConfigCenterNode {
     }
     
     /**
-     * Get schemas node path.
-     * 
-     * @return schemas node path.
+     * Get all schema paths.
+     *
+     * @param schemaNames schema names.
+     * @return list of schema path.
      */
-    public String getSchemasNodePath() {
-        return Joiner.on(PATH_SEPARATOR).join("", SCHEMAS_NODE);
+    public Collection<String> getAllSchemaPaths(final Collection<String> schemaNames) {
+        return schemaNames.stream().map(this::getSchemaPath).collect(Collectors.toList());
+    }
+    
+    /**
+     * Get all rule paths.
+     *
+     * @param schemaNames schema names.
+     * @return list of rule path.
+     */
+    public Collection<String> getAllRulePaths(final Collection<String> schemaNames) {
+        return schemaNames.stream().map(this::getRulePath).collect(Collectors.toList());
+    }
+    
+    /**
+     * Get all data source paths.
+     *
+     * @param schemaNames schema names.
+     * @return list of data source path.
+     */
+    public Collection<String> getAllDataSourcePaths(final Collection<String> schemaNames) {
+        return schemaNames.stream().map(this::getDataSourcePath).collect(Collectors.toList());
     }
 }

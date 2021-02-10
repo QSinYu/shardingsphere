@@ -22,15 +22,16 @@ import lombok.Getter;
 import org.apache.shardingsphere.driver.api.yaml.YamlShardingSphereDataSourceFactory;
 import org.apache.shardingsphere.driver.jdbc.core.datasource.ShardingSphereDataSource;
 import org.apache.shardingsphere.infra.database.type.DatabaseType;
+import org.apache.shardingsphere.test.integration.engine.junit.ParallelParameterized;
 import org.apache.shardingsphere.test.integration.env.EnvironmentPath;
-import org.apache.shardingsphere.test.integration.env.IntegrateTestEnvironment;
+import org.apache.shardingsphere.test.integration.env.EnvironmentType;
+import org.apache.shardingsphere.test.integration.env.IntegrationTestEnvironment;
+import org.apache.shardingsphere.test.integration.env.database.DatabaseEnvironmentManager;
 import org.apache.shardingsphere.test.integration.env.datasource.builder.ActualDataSourceBuilder;
 import org.apache.shardingsphere.test.integration.env.datasource.builder.ProxyDataSourceBuilder;
-import org.apache.shardingsphere.test.integration.env.schema.SchemaEnvironmentManager;
 import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 import javax.sql.DataSource;
 import javax.xml.bind.JAXBException;
@@ -40,7 +41,7 @@ import java.sql.SQLException;
 import java.util.Map;
 import java.util.TimeZone;
 
-@RunWith(Parameterized.class)
+@RunWith(ParallelParameterized.class)
 @Getter(AccessLevel.PROTECTED)
 public abstract class BaseIT {
     
@@ -66,11 +67,17 @@ public abstract class BaseIT {
         this.databaseType = databaseType;
         actualDataSources = ActualDataSourceBuilder.createActualDataSources(scenario, databaseType);
         targetDataSource = createTargetDataSource();
+        // TODO maybe use @AfterClass, but targetDataSource should be static
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            if (targetDataSource instanceof ShardingSphereDataSource) {
+                closeTargetDataSource();
+            }
+        }));
     }
     
     private DataSource createTargetDataSource() throws SQLException, IOException {
         if ("proxy".equalsIgnoreCase(adapter)) {
-            return ProxyDataSourceBuilder.build(scenario, databaseType, IntegrateTestEnvironment.getInstance().getProxyEnvironments().get(scenario));
+            return ProxyDataSourceBuilder.build(scenario, databaseType, IntegrationTestEnvironment.getInstance().getProxyEnvironments().get(scenario));
         }
         return YamlShardingSphereDataSourceFactory.createDataSource(actualDataSources, new File(EnvironmentPath.getRulesConfigurationFile(scenario)));
     }
@@ -79,10 +86,21 @@ public abstract class BaseIT {
         targetDataSource = createTargetDataSource();
     }
     
+    private void closeTargetDataSource() {
+        ((ShardingSphereDataSource) targetDataSource).getDataSourceMap().values().forEach(dataSource -> {
+            try {
+                ((AutoCloseable) dataSource).close();
+                //CHECKSTYLE:OFF
+            } catch (final Exception ignored) {
+                //CHECKSTYLE:ON
+            }
+        });
+    }
+    
     @BeforeClass
     public static void executeInitSQLs() throws IOException, JAXBException, SQLException {
-        if (!IntegrateTestEnvironment.getInstance().isEnvironmentPrepared()) {
-            SchemaEnvironmentManager.executeInitSQLs();
+        if (EnvironmentType.DOCKER != IntegrationTestEnvironment.getInstance().getEnvType()) {
+            DatabaseEnvironmentManager.executeInitSQLs();
         }
     }
     

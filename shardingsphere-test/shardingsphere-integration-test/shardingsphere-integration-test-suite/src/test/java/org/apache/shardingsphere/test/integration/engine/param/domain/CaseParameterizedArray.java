@@ -17,32 +17,36 @@
 
 package org.apache.shardingsphere.test.integration.engine.param.domain;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.shardingsphere.infra.database.type.DatabaseType;
-import org.apache.shardingsphere.test.integration.cases.IntegrateTestCaseContext;
+import org.apache.shardingsphere.test.integration.cases.IntegrationTestCaseContext;
+import org.apache.shardingsphere.test.integration.cases.SQLCommandType;
 
 /**
- * Parameterized array of case based integrate test.
+ * Parameterized array of case based integration test.
  */
 @RequiredArgsConstructor
+@Getter
 public final class CaseParameterizedArray implements ParameterizedArray {
     
-    private final IntegrateTestCaseContext testCaseContext;
+    private final IntegrationTestCaseContext testCaseContext;
     
-    private final String adapters;
+    private final String adapter;
     
     private final String scenario;
     
     private final DatabaseType databaseType;
     
+    private final SQLCommandType sqlCommandType;
+    
     @Override
     public Object[] toArrays() {
-        Object[] result = new Object[5];
-        result[0] = testCaseContext;
-        result[1] = adapters;
-        result[2] = scenario;
-        result[3] = databaseType.getName();
-        result[4] = testCaseContext.getTestCase().getSql();
-        return result;
+        return new Object[] {new ParameterizedWrapper(testCaseContext, null, adapter, scenario, databaseType, null, sqlCommandType, this)};
+    }
+    
+    @Override
+    public String getIndividualTestCaseIdentify() {
+        return String.format("%s: %s -> %s -> %s", adapter, scenario, databaseType.getName(), testCaseContext.getTestCase().getSql());
     }
 }

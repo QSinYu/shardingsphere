@@ -17,23 +17,26 @@
 
 package org.apache.shardingsphere.test.integration.engine.param.domain;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.shardingsphere.infra.database.type.DatabaseType;
-import org.apache.shardingsphere.test.integration.cases.IntegrateTestCaseContext;
-import org.apache.shardingsphere.test.integration.cases.assertion.IntegrateTestCaseAssertion;
+import org.apache.shardingsphere.test.integration.cases.IntegrationTestCaseContext;
+import org.apache.shardingsphere.test.integration.cases.SQLCommandType;
+import org.apache.shardingsphere.test.integration.cases.assertion.IntegrationTestCaseAssertion;
 import org.apache.shardingsphere.test.integration.engine.param.SQLExecuteType;
 
 /**
- * Parameterized array of assertion based integrate test.
+ * Parameterized array of assertion based integration test.
  */
 @RequiredArgsConstructor
+@Getter
 public final class AssertionParameterizedArray implements ParameterizedArray {
     
-    private final IntegrateTestCaseContext testCaseContext;
+    private final IntegrationTestCaseContext testCaseContext;
     
-    private final IntegrateTestCaseAssertion assertion;
+    private final IntegrationTestCaseAssertion assertion;
     
-    private final String adapters;
+    private final String adapter;
     
     private final String scenario;
     
@@ -41,16 +44,15 @@ public final class AssertionParameterizedArray implements ParameterizedArray {
     
     private final SQLExecuteType sqlExecuteType;
     
+    private final SQLCommandType sqlCommandType;
+    
     @Override
     public Object[] toArrays() {
-        Object[] result = new Object[7];
-        result[0] = testCaseContext.getParentPath();
-        result[1] = assertion;
-        result[2] = adapters;
-        result[3] = scenario;
-        result[4] = databaseType.getName();
-        result[5] = sqlExecuteType;
-        result[6] = testCaseContext.getTestCase().getSql();
-        return result;
+        return new Object[] {new ParameterizedWrapper(testCaseContext, assertion, adapter, scenario, databaseType, sqlExecuteType, sqlCommandType, this)};
+    }
+    
+    @Override
+    public String getIndividualTestCaseIdentify() {
+        return String.format("%s: %s -> %s -> %s -> %s", adapter, scenario, databaseType.getName(), sqlExecuteType, testCaseContext.getTestCase().getSql());
     }
 }

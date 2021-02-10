@@ -21,8 +21,9 @@ import lombok.SneakyThrows;
 import org.apache.shardingsphere.governance.context.metadata.GovernanceMetaDataContexts;
 import org.apache.shardingsphere.governance.context.transaction.GovernanceTransactionContexts;
 import org.apache.shardingsphere.governance.core.config.ConfigCenterNode;
-import org.apache.shardingsphere.infra.auth.ShardingSphereUser;
-import org.apache.shardingsphere.infra.auth.builtin.DefaultAuthentication;
+import org.apache.shardingsphere.infra.metadata.auth.model.user.Grantee;
+import org.apache.shardingsphere.infra.metadata.auth.model.user.ShardingSphereUser;
+import org.apache.shardingsphere.infra.metadata.auth.builtin.DefaultAuthentication;
 import org.apache.shardingsphere.infra.config.RuleConfiguration;
 import org.apache.shardingsphere.infra.config.algorithm.ShardingSphereAlgorithmConfiguration;
 import org.apache.shardingsphere.infra.config.datasource.DataSourceParameter;
@@ -68,7 +69,7 @@ public final class GovernanceBootstrapInitializerTest extends AbstractBootstrapI
     
     private static final String PROPS_YAML = "conf/reg_center/config_center/props.yaml";
     
-    private FixtureConfigurationRepository configurationRepository = new FixtureConfigurationRepository();
+    private final FixtureConfigurationRepository configurationRepository = new FixtureConfigurationRepository();
     
     @Test
     public void assertGetProxyConfiguration() throws IOException {
@@ -78,24 +79,18 @@ public final class GovernanceBootstrapInitializerTest extends AbstractBootstrapI
         closeConfigCenter();
     }
     
-    @SneakyThrows(IOException.class)
-    protected YamlProxyConfiguration makeProxyConfiguration() {
-        return ProxyConfigurationLoader.load("/conf/reg_center/");
-    }
-    
     private void initConfigCenter() {
         ConfigCenterNode node = new ConfigCenterNode();
         configurationRepository.persist(node.getAuthenticationPath(), readYAML(AUTHENTICATION_YAML));
         configurationRepository.persist(node.getPropsPath(), readYAML(PROPS_YAML));
-        configurationRepository.persist(node.getSchemasNodePath(), "db");
+        configurationRepository.persist(node.getMetadataNodePath(), "db");
         configurationRepository.persist(node.getDataSourcePath("db"), readYAML(DATA_SOURCE_YAML));
         configurationRepository.persist(node.getRulePath("db"), readYAML(SHARDING_RULE_YAML));
     }
     
     @SneakyThrows({URISyntaxException.class, IOException.class})
     private String readYAML(final String yamlFile) {
-        return Files.readAllLines(Paths.get(ClassLoader.getSystemResource(yamlFile).toURI()))
-                .stream().map(each -> each + System.lineSeparator()).collect(Collectors.joining());
+        return Files.readAllLines(Paths.get(ClassLoader.getSystemResource(yamlFile).toURI())).stream().map(each -> each + System.lineSeparator()).collect(Collectors.joining());
     }
     
     private void closeConfigCenter() {
@@ -115,7 +110,7 @@ public final class GovernanceBootstrapInitializerTest extends AbstractBootstrapI
         assertNotNull(actual);
         assertSchemaDataSources(actual.getSchemaDataSources());
         assertSchemaRules(actual.getSchemaRules());
-        assertAuthentication(actual.getAuthentication());
+        assertAuthentication(new DefaultAuthentication(actual.getUsers()));
         assertProps(actual.getProps());
     }
     
@@ -196,15 +191,12 @@ public final class GovernanceBootstrapInitializerTest extends AbstractBootstrapI
     }
     
     private void assertAuthentication(final DefaultAuthentication actual) {
-        Optional<ShardingSphereUser> rootUser = actual.findUser("root");
+        Optional<ShardingSphereUser> rootUser = actual.findUser(new Grantee("root", ""));
         assertTrue(rootUser.isPresent());
         assertThat(rootUser.get().getPassword(), is("root"));
-        assertThat(rootUser.get().getAuthorizedSchemas().size(), is(0));
-        Optional<ShardingSphereUser> shardingUser = actual.findUser("sharding");
+        Optional<ShardingSphereUser> shardingUser = actual.findUser(new Grantee("sharding", ""));
         assertTrue(shardingUser.isPresent());
         assertThat(shardingUser.get().getPassword(), is("sharding"));
-        assertThat(shardingUser.get().getAuthorizedSchemas().size(), is(1));
-        assertTrue(shardingUser.get().getAuthorizedSchemas().contains("sharding_db"));
     }
     
     @Test

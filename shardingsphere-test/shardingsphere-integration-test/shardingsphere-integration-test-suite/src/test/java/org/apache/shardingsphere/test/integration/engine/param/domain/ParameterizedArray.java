@@ -28,4 +28,11 @@ public interface ParameterizedArray {
      * @return parameterized arrays
      */
     Object[] toArrays();
+    
+    /**
+     * Get identify of individual test cases in a parameterized test.
+     *
+     * @return identify of individual test cases
+     */
+    String getIndividualTestCaseIdentify();
 }

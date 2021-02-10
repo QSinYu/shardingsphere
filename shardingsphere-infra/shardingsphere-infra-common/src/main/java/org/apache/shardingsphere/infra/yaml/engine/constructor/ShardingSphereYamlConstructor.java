@@ -30,13 +30,13 @@ import java.util.Map;
 /**
  * ShardingSphere YAML constructor.
  */
-public final class ShardingSphereYamlConstructor extends Constructor {
+public class ShardingSphereYamlConstructor extends Constructor {
     
     static {
         ShardingSphereServiceLoader.register(ShardingSphereYamlConstruct.class);
     }
     
-    private final Map<Class, Construct> typeConstructs = new HashMap<>();
+    private final Map<Class<?>, Construct> typeConstructs = new HashMap<>();
     
     public ShardingSphereYamlConstructor(final Class<?> rootClass) {
         super(rootClass);
@@ -45,7 +45,7 @@ public final class ShardingSphereYamlConstructor extends Constructor {
     }
     
     @Override
-    protected Construct getConstructor(final Node node) {
+    protected final Construct getConstructor(final Node node) {
         return typeConstructs.getOrDefault(node.getType(), super.getConstructor(node));
     }
 }

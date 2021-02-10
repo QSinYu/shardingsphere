@@ -17,13 +17,13 @@
 
 package org.apache.shardingsphere.test.integration.engine.it.dml;
 
-import org.apache.shardingsphere.infra.database.type.DatabaseTypeRegistry;
 import org.apache.shardingsphere.test.integration.cases.SQLCommandType;
-import org.apache.shardingsphere.test.integration.cases.IntegrateTestCaseContext;
-import org.apache.shardingsphere.test.integration.cases.assertion.IntegrateTestCaseAssertion;
+import org.apache.shardingsphere.test.integration.cases.IntegrationTestCaseContext;
+import org.apache.shardingsphere.test.integration.cases.assertion.IntegrationTestCaseAssertion;
 import org.apache.shardingsphere.test.integration.cases.value.SQLValue;
 import org.apache.shardingsphere.test.integration.engine.it.BatchIT;
 import org.apache.shardingsphere.test.integration.engine.param.ParameterizedArrayFactory;
+import org.apache.shardingsphere.test.integration.engine.param.domain.ParameterizedWrapper;
 import org.junit.Test;
 import org.junit.runners.Parameterized.Parameters;
 
@@ -40,15 +40,18 @@ import static org.junit.Assert.assertThat;
 
 public final class BatchDMLIT extends BatchIT {
     
-    private final IntegrateTestCaseContext testCaseContext;
+    private final IntegrationTestCaseContext testCaseContext;
     
-    public BatchDMLIT(final IntegrateTestCaseContext testCaseContext, final String adapter, 
-                      final String scenario, final String databaseType, final String sql) throws IOException, JAXBException, SQLException {
-        super(testCaseContext, adapter, scenario, DatabaseTypeRegistry.getActualDatabaseType(databaseType), sql);
-        this.testCaseContext = testCaseContext;
+    public BatchDMLIT(final ParameterizedWrapper parameterizedWrapper) throws IOException, JAXBException, SQLException {
+        super(parameterizedWrapper.getTestCaseContext(),
+                parameterizedWrapper.getAdapter(),
+                parameterizedWrapper.getScenario(),
+                parameterizedWrapper.getDatabaseType(),
+                parameterizedWrapper.getTestCaseContext().getTestCase().getSql());
+        this.testCaseContext = parameterizedWrapper.getTestCaseContext();
     }
     
-    @Parameters(name = "{1}: {2} -> {3} -> {4}")
+    @Parameters(name = "{0}")
     public static Collection<Object[]> getParameters() {
         return ParameterizedArrayFactory.getCaseParameterizedArray(SQLCommandType.DML);
     }
@@ -67,19 +70,19 @@ public final class BatchDMLIT extends BatchIT {
         try (Connection connection = getTargetDataSource().getConnection()) {
             actualUpdateCounts = executeBatchForPreparedStatement(connection);
         }
-        assertDataSet(actualUpdateCounts);
+        assertDataSets(actualUpdateCounts);
     }
     
     private int[] executeBatchForPreparedStatement(final Connection connection) throws SQLException, ParseException {
         try (PreparedStatement preparedStatement = connection.prepareStatement(getSql())) {
-            for (IntegrateTestCaseAssertion each : testCaseContext.getTestCase().getAssertions()) {
+            for (IntegrationTestCaseAssertion each : testCaseContext.getTestCase().getAssertions()) {
                 addBatch(preparedStatement, each);
             }
             return preparedStatement.executeBatch();
         }
     }
     
-    private void addBatch(final PreparedStatement preparedStatement, final IntegrateTestCaseAssertion assertion) throws ParseException, SQLException {
+    private void addBatch(final PreparedStatement preparedStatement, final IntegrationTestCaseAssertion assertion) throws ParseException, SQLException {
         for (SQLValue each : assertion.getSQLValues()) {
             preparedStatement.setObject(each.getIndex(), each.getValue());
         }
@@ -98,7 +101,7 @@ public final class BatchDMLIT extends BatchIT {
         }
         try (Connection connection = getTargetDataSource().getConnection()) {
             try (PreparedStatement preparedStatement = connection.prepareStatement(getSql())) {
-                for (IntegrateTestCaseAssertion each : testCaseContext.getTestCase().getAssertions()) {
+                for (IntegrationTestCaseAssertion each : testCaseContext.getTestCase().getAssertions()) {
                     addBatch(preparedStatement, each);
                 }
                 preparedStatement.clearBatch();
